@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Pagamento</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="card">
+
+    <div class="section">
+      <h2>Agora é só pagar</h2>
+      <p class="muted" style="display:flex;align-items:center;gap:6px;">
+        🔒 Pagamento 100% seguro
+      </p>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- QR CODE -->
+    <div class="section" style="text-align:center;">
+      <img src="m4.png" alt="QR Code Pix"
+        style="max-width:260px;width:100%;border:1px solid var(--border);
+        border-radius:12px;padding:10px;background:#fff;">
+    </div>
+
+    <!-- CONTADOR ABAIXO DO QR -->
+    <div class="section">
+      <div class="row">
+        <span>O código expira em</span>
+        <b id="timer">10:00</b>
+      </div>
+      <p class="small muted" id="expiredMsg" style="display:none;margin:8px 0 0;">
+        Esse código expirou. Gere um novo para pagar.
+      </p>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- BOTÃO COPIAR PIX -->
+    <div class="section">
+      <button class="btn2" id="copyBtn" type="button">
+        Copiar pix copia e cola
+      </button>
+
+      <p id="copiado" class="small" style="display:none;margin-top:6px;">
+        Pix copiado com sucesso ✅
+      </p>
+
+      <p id="copyFail" class="small" style="display:none;margin-top:6px;color:var(--danger);">
+        Não deu pra copiar automaticamente. Segura e copia manualmente.
+      </p>
+
+      <!-- Fallback (fica escondido) -->
+      <textarea id="pixHidden"
+        style="position:absolute;left:-9999px;top:-9999px;opacity:0;"></textarea>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- BOTÃO JÁ PAGUEI -->
+    <div class="section">
+      <button class="btn2" id="paidBtn" type="button">
+        Já paguei
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal" hidden>
+  <div class="modalCard">
+    <div class="modalHead">
+      <h3>Atenção</h3>
+    </div>
+
+    <div class="modalBody">
+      <p class="muted">
+        O pagamento ainda não foi confirmado, aguarde alguns instantes e tente novamente.
+      </p>
+    </div>
+
+    <div class="modalActions">
+      <button class="ghostBtn" id="closeModal" type="button">Entendi</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ======= CONFIG: COLOQUE AQUI SEU PIX REAL =======
+  const PIX_COPIA_E_COLA = `00020126580014BR.GOV.BCB.PIX013632e981c8-c393-4230-861c-fa7d85fc4626520400005303986540534.905802BR5911SUSHI MANIA6009Sao Paulo62070503***63040058`;
+
+  // Elementos
+  const timerEl = document.getElementById('timer');
+  const expiredMsg = document.getElementById('expiredMsg');
+
+  const copyBtn = document.getElementById('copyBtn');
+  const copiedEl = document.getElementById('copiado');
+  const copyFailEl = document.getElementById('copyFail');
+  const pixHidden = document.getElementById('pixHidden');
+
+  const modal = document.getElementById('modal');
+  const paidBtn = document.getElementById('paidBtn');
+  const closeModal = document.getElementById('closeModal');
+
+  // Prepara fallback
+  pixHidden.value = PIX_COPIA_E_COLA;
+
+  // ======= CONTADOR 10 MIN =======
+  let tempo = 10 * 60; // 600s
+
+  function renderTimer() {
+    const m = String(Math.floor(tempo / 60)).padStart(2, '0');
+    const s = String(tempo % 60).padStart(2, '0');
+    timerEl.textContent = `${m}:${s}`;
+  }
+
+  renderTimer();
+
+  const interval = setInterval(() => {
+    if (tempo <= 0) {
+      tempo = 0;
+      renderTimer();
+      clearInterval(interval);
+
+      // opcional: desabilita botões quando expirar
+      copyBtn.disabled = true;
+      paidBtn.disabled = true;
+      copyBtn.style.opacity = "0.6";
+      paidBtn.style.opacity = "0.6";
+      expiredMsg.style.display = "block";
+      return;
+    }
+    tempo--;
+    renderTimer();
+  }, 1000);
+
+  // ======= COPIAR PIX (com fallback REAL) =======
+  function showCopiedOk() {
+    copyFailEl.style.display = "none";
+    copiedEl.style.display = "block";
+    setTimeout(() => copiedEl.style.display = "none", 1800);
+  }
+
+  function showCopyFail() {
+    copiedEl.style.display = "none";
+    copyFailEl.style.display = "block";
+  }
+
+  async function copiarPix() {
+    try {
+      // tentativa moderna
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(PIX_COPIA_E_COLA);
+        showCopiedOk();
+        return;
+      }
+
+      // fallback antigo (funciona em HTTP / arquivo local)
+      pixHidden.focus();
+      pixHidden.select();
+      pixHidden.setSelectionRange(0, 999999);
+      const ok = document.execCommand('copy');
+      if (ok) showCopiedOk();
+      else showCopyFail();
+    } catch (e) {
+      // fallback final
+      try {
+        pixHidden.focus();
+        pixHidden.select();
+        pixHidden.setSelectionRange(0, 999999);
+        const ok2 = document.execCommand('copy');
+        if (ok2) showCopiedOk();
+        else showCopyFail();
+      } catch (e2) {
+        showCopyFail();
+      }
+    }
+  }
+
+  copyBtn.addEventListener('click', copiarPix);
+
+  // ======= MODAL "JÁ PAGUEI" =======
+  function abrirModal(){ modal.hidden = false; }
+  function fecharModal(){ modal.hidden = true; }
+
+  paidBtn.addEventListener('click', abrirModal);
+  closeModal.addEventListener('click', fecharModal);
+
+  // Fecha clicando fora
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) fecharModal();
+  });
+
+  // Fecha no ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') fecharModal();
+  });
+</script>
+
+</body>
+</html>

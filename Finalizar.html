@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Finalizar Pedido</title>
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <a class="logo" href="./index.html" style="text-decoration:none" aria-label="voltar">←</a>
+      <div class="brandText">
+        <h1>Finalizar pedido</h1>
+        <p class="muted">Você está 100% seguro</p>
+      </div>
+    </div>
+    <div class="topActions">
+      <button class="btn" id="btnClear">Limpar seleção</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid finalizeGrid">
+
+      <!-- RESUMO DO PEDIDO -->
+      <section class="card">
+        <div class="section">
+          <div class="h">
+            <h3>Seu pedido</h3>
+            <span class="small" id="sumCount">0 item</span>
+          </div>
+
+          <div class="products" id="sumItems"></div>
+
+          <div class="divider"></div>
+
+          <div class="totalsLine">
+            <span>Subtotal</span>
+            <b id="sumTotal">R$ 0,00</b>
+          </div>
+        </div>
+      </section>
+
+      <!-- DADOS DO CLIENTE -->
+      <aside class="card">
+        <div class="section">
+          <div class="h">
+            <h3>Dados do cliente</h3>
+            <span class="small">Preencha corretamente</span>
+          </div>
+
+          <form class="form" id="checkoutForm">
+
+            <label>Nome
+              <input name="nome" required placeholder="Seu nome" />
+            </label>
+
+            <label>WhatsApp
+              <input name="whats" required placeholder="(11) 91234-5678" />
+            </label>
+
+            <label>Endereço
+              <input name="endereco" required placeholder="Rua, número, bairro" />
+            </label>
+
+            <label>Obs.
+              <textarea name="obs" rows="3" placeholder="Ex: sem cebola, entregar na portaria"></textarea>
+            </label>
+
+            <label>Pagamento
+              <select name="pagamento">
+                <option>Pix</option>
+              </select>
+            </label>
+
+            <button class="btn2" type="submit">
+              Continuar para pagamento
+            </button>
+
+          </form>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- SCRIPTS BASE -->
+  <script src="./js/data.js"></script>
+  <script src="./js/app.js"></script>
+
+  <!-- SCRIPT DO FINALIZAR -->
+  <script>
+  (function () {
+
+    const { money, getSelection, clearSelection, findProduct } = window.Cardapio;
+
+    const sumItems  = document.getElementById("sumItems");
+    const sumCount  = document.getElementById("sumCount");
+    const sumTotal  = document.getElementById("sumTotal");
+    const btnClear  = document.getElementById("btnClear");
+    const form      = document.getElementById("checkoutForm");
+
+    function render() {
+      const selection = getSelection();
+
+      if (!selection) {
+        sumCount.textContent = "0 item";
+        sumTotal.textContent = money(0);
+        sumItems.innerHTML = `
+          <div class="empty">
+            Nenhum item selecionado.
+            <a href="./index.html">Voltar pro cardápio</a>
+          </div>`;
+        return;
+      }
+
+      const product = findProduct(selection.productId);
+      if (!product) return;
+
+      sumCount.textContent = "1 item";
+      sumTotal.textContent = money(product.price);
+
+      const barcaLine = selection.barcaItems?.length
+        ? `<p class="d"><b>Itens da barca:</b> ${selection.barcaItems.join(", ")}</p>`
+        : "";
+
+      const thumb = product.image
+        ? `<img src="${product.image}" alt="${product.title}" width="110" height="110" />`
+        : "🍣";
+
+      sumItems.innerHTML = `
+        <div class="item">
+          <div class="thumb">${thumb}</div>
+          <div class="itxt">
+            <div class="t">${product.title}</div>
+            <p class="d">${product.desc || ""}</p>
+            <p class="d"><b>Bebida:</b> ${selection.drink || "Sem bebida"}</p>
+            ${barcaLine}
+          </div>
+          <div class="price">
+            <div class="new">${money(product.price)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    btnClear.addEventListener("click", () => {
+      clearSelection();
+      render();
+    });
+
+    // 🔥 SUBMIT COM ROTA AUTOMÁTICA
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const selection = getSelection();
+      if (!selection) {
+        alert("Nenhum produto selecionado");
+        return;
+      }
+
+      const product = findProduct(selection.productId);
+      if (!product || !product.id) {
+        alert("Produto inválido");
+        return;
+      }
+
+      // id = nome do html
+      // ex: barca-100 -> barca-100.html
+      window.location.href = `./${product.id}.html`;
+    });
+
+    render();
+
+  })();
+  </script>
+
+</body>
+</html>
